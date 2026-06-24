@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ATO Tax Law — Point-in-Time Explorer · SimpleLex</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+  /* ── SimpleLex brand system ───────────────────────────────────────────
+     Type:  Instrument Serif (display, italic accents) · JetBrains Mono (UI/body)
+     Color: paper / ink, with moss + ochre accents.
+     ──────────────────────────────────────────────────────────────────── */
+  :root{
+    --ink:#0F1410;
+    --ink-2:#1c211d;
+    --paper:#F1ECDF;
+    --paper-2:#E8E1CF;
+    --panel:#F7F3E8;
+    --line:rgba(15,20,16,0.14);
+    --line-strong:rgba(15,20,16,0.30);
+    --muted:rgba(15,20,16,0.55);
+    --moss:oklch(0.45 0.08 150);
+    --ochre:oklch(0.65 0.13 55);
+    /* diff / status semantics, tuned to the brand palette */
+    --add:oklch(0.45 0.08 150);   --addbg:oklch(0.92 0.04 150);
+    --del:oklch(0.48 0.13 32);    --delbg:oklch(0.91 0.05 40);
+    --warn:oklch(0.52 0.10 70);   --warnbg:oklch(0.90 0.06 75);
+    --serif:'Instrument Serif','Times New Roman',serif;
+    --mono:'JetBrains Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font:15px/1.6 var(--mono);
+    -webkit-font-smoothing:antialiased;text-rendering:geometricPrecision;}
+
+  /* ── Header ─────────────────────────────────────────────────────────── */
+  header{background:var(--ink);color:var(--paper);
+    padding:22px 24px;border-bottom:3px solid var(--ochre);}
+  .brand-row{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .brand-row .mark{width:24px;height:24px;color:var(--paper);
+    display:inline-flex;align-items:center;justify-content:center}
+  .brand-row .mark svg{display:block}
+  .wordmark{display:inline-flex;align-items:baseline;line-height:1;font-size:22px;
+    letter-spacing:-0.02em}
+  .wordmark .simple{font-family:var(--mono);font-weight:500;letter-spacing:-0.04em}
+  .wordmark .lex{font-family:var(--serif);font-style:italic;color:var(--ochre);
+    letter-spacing:-0.02em}
+  .brand-row .sku{margin-left:auto;font-family:var(--mono);font-size:11px;
+    letter-spacing:0.22em;text-transform:uppercase;color:rgba(241,236,223,0.5)}
+  header h1{margin:0;font-family:var(--serif);font-weight:400;
+    font-size:40px;line-height:1.0;letter-spacing:-0.02em}
+  header h1 em{font-style:italic}
+  header p{margin:8px 0 0;font-size:13px;line-height:1.5;
+    color:rgba(241,236,223,0.72);max-width:680px;letter-spacing:-0.01em}
+
+  .wrap{max-width:1060px;margin:0 auto;padding:0 20px}
+
+  /* ── Controls bar ───────────────────────────────────────────────────── */
+  .controls{position:sticky;top:0;z-index:5;background:var(--panel);
+    border:1px solid var(--line);border-top:none;
+    padding:16px;margin-bottom:18px;box-shadow:0 8px 20px -16px rgba(15,20,16,.6);
+    display:grid;gap:14px 18px;grid-template-columns:1fr 1fr;align-items:end;}
+  .controls .full{grid-column:1/-1}
+  label{display:block;font-family:var(--mono);font-size:10px;text-transform:uppercase;
+    letter-spacing:.18em;color:var(--muted);margin-bottom:6px;font-weight:500}
+  select,input[type=date],input[type=search]{width:100%;padding:9px 11px;
+    font-family:var(--mono);font-size:13px;border:1px solid var(--line);border-radius:0;
+    background:var(--paper);color:var(--ink);letter-spacing:-0.01em}
+  select:focus,input:focus{outline:none;border-color:var(--ink);
+    box-shadow:inset 0 -2px 0 var(--ochre)}
+  select:disabled,input:disabled{opacity:.5}
+  .row{display:flex;gap:24px;flex-wrap:wrap;align-items:center}
+  .toggle{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);
+    cursor:pointer;letter-spacing:-0.01em}
+  .toggle input{width:15px;height:15px;accent-color:var(--ochre)}
+  .btn{font-family:var(--mono);font-size:12px;letter-spacing:.04em;text-transform:uppercase;
+    padding:6px 12px;border:1px solid var(--line-strong);background:var(--paper);color:var(--ink);
+    cursor:pointer;border-radius:0}
+  .btn:hover:not(:disabled){background:var(--paper-2);border-color:var(--ink)}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+
+  /* ── Status line ────────────────────────────────────────────────────── */
+  .status{font-family:var(--mono);font-size:13px;color:var(--muted);
+    margin:0 2px 16px;line-height:1.6;letter-spacing:-0.01em}
+  .status b{color:var(--ink);font-weight:500}
+  .legend{display:inline-flex;gap:8px;flex-wrap:wrap;font-size:12px;
+    color:var(--muted);margin-left:4px}
+  .badge{font-family:var(--mono);font-size:10px;font-weight:500;
+    text-transform:uppercase;letter-spacing:.12em;padding:3px 8px;border-radius:0;
+    vertical-align:middle;border:1px solid currentColor}
+  .b-changed{background:transparent;color:var(--warn)}
+  .b-added{background:transparent;color:var(--add)}
+  .b-removed{background:transparent;color:var(--del)}
+
+  /* ── Provision rows ─────────────────────────────────────────────────── */
+  .prov{background:var(--panel);border:1px solid var(--line);border-radius:0;
+    margin-bottom:8px;overflow:hidden}
+  .prov.removed{opacity:.7}
+  .phead{display:flex;gap:14px;align-items:baseline;padding:13px 16px;cursor:pointer;
+    user-select:none;transition:background .12s}
+  .phead:hover{background:var(--paper-2)}
+  .pkey{font-family:var(--mono);font-weight:700;font-size:13px;
+    color:var(--moss);white-space:nowrap;min-width:74px;letter-spacing:-0.01em}
+  .ptitle{flex:1;font-family:var(--serif);font-size:21px;line-height:1.15;
+    letter-spacing:-0.01em}
+  .pmeta{font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap;
+    letter-spacing:0.02em}
+  .pbody{padding:4px 16px 18px 16px;border-top:1px dashed var(--line);
+    font-family:var(--mono);font-size:14px;line-height:1.7;white-space:pre-wrap}
+  .pbody.hidden{display:none}
+  .pnote{font-family:var(--mono);font-size:12.5px;color:var(--muted);
+    background:var(--paper-2);border-left:3px solid var(--ochre);
+    padding:9px 12px;margin:10px 0;white-space:normal}
+
+  /* ── Diff columns ───────────────────────────────────────────────────── */
+  .diffcol{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:8px}
+  .diffcol h4{margin:10px 0 6px;font-family:var(--mono);font-size:10px;
+    text-transform:uppercase;letter-spacing:.18em;color:var(--muted);font-weight:500}
+  ins{background:var(--addbg);color:var(--add);text-decoration:none;
+    padding:0 1px;border-radius:0}
+  del{background:var(--delbg);color:var(--del);padding:0 1px;border-radius:0}
+
+  /* ── Provision tabs + full-history timeline ─────────────────────────── */
+  .tl-tabs{display:flex;gap:0;margin:6px 0 12px}
+  .tl-tab{font-family:var(--mono);font-size:10px;text-transform:uppercase;
+    letter-spacing:.14em;padding:7px 13px;border:1px solid var(--line);
+    background:var(--paper);color:var(--muted);cursor:pointer;border-radius:0}
+  .tl-tab+.tl-tab{border-left:none}
+  .tl-tab.active{color:var(--ink);background:var(--paper-2);
+    box-shadow:inset 0 -2px 0 var(--ochre)}
+  .tl-pane.hidden{display:none}
+  .tl-modebar{display:flex;align-items:center;gap:10px;margin:2px 0 12px}
+  .tl-modelbl{font-family:var(--mono);font-size:10px;text-transform:uppercase;
+    letter-spacing:.18em;color:var(--muted)}
+  .timeline{position:relative}
+  .tl-entry{border-left:2px solid var(--line-strong);padding:2px 0 16px 16px;
+    margin-left:3px;position:relative}
+  .tl-entry::before{content:'';position:absolute;left:-5px;top:5px;width:8px;height:8px;
+    background:var(--ochre);border-radius:50%}
+  .tl-range{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--moss);
+    letter-spacing:.02em;margin-bottom:6px}
+  .tl-note{font-family:var(--mono);font-size:12px;color:var(--ink);
+    background:var(--paper-2);border-left:3px solid var(--ochre);
+    padding:7px 11px;margin:0 0 8px;white-space:normal}
+  .tl-body{font-family:var(--mono);font-size:14px;line-height:1.7;white-space:pre-wrap}
+  .tl-marker{color:var(--muted);font-style:italic}
+  /* FRL "view source" link shown under provision text / in the marker banner */
+  .frl-src{font-family:var(--mono);font-size:11px;color:var(--moss);
+    text-decoration:underline;text-underline-offset:2px}
+  .frl-srcrow{margin-top:8px}
+  .pit-banner{font-family:var(--mono);font-size:12.5px;background:var(--warnbg);
+    border:1px solid var(--warn);border-radius:6px;padding:10px 13px;margin:0 0 12px;color:var(--ink)}
+  .pit-banner-h{font-weight:500;color:var(--warn);margin-bottom:6px;line-height:1.5}
+  .pit-banner-note{margin:3px 0;white-space:normal;line-height:1.5}
+  .pit-banner-date{font-weight:500}
+  /* strike-through deletions ONLY in the unified inline timeline (not split/compare) */
+  .tl-inline del{text-decoration:line-through}
+  /* ── structured provision outline (numbering ladder) ─────────────────── */
+  .pf-li{display:flex;gap:.55em;margin:.32em 0;white-space:normal}
+  .pf-mk{flex:0 0 auto;color:var(--moss);font-weight:500;min-width:2.1em;
+    font-variant-numeric:tabular-nums}
+  .pf-bd{flex:1 1 auto;min-width:0}
+  .pf-note{margin:.34em 0;color:var(--muted);font-style:italic;white-space:normal}
+  .pf-tx{margin:.34em 0;white-space:normal}
+
+  .empty{text-align:center;color:var(--muted);font-family:var(--mono);
+    padding:56px 0;font-size:13px;letter-spacing:-0.01em}
+  .spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);
+    border-top-color:var(--ochre);border-radius:50%;animation:s .7s linear infinite;
+    vertical-align:-2px;margin-right:8px}
+  @keyframes s{to{transform:rotate(360deg)}}
+
+  /* ── Footer ─────────────────────────────────────────────────────────── */
+  footer{font-family:var(--mono);font-size:11.5px;color:var(--muted);
+    text-align:center;padding:34px 20px 56px;line-height:1.7;letter-spacing:-0.01em}
+  footer a{color:var(--moss);text-underline-offset:2px}
+
+  @media(max-width:680px){
+    .controls{grid-template-columns:1fr}
+    .diffcol{grid-template-columns:1fr}
+    header h1{font-size:30px}
+  }
+
+  /* ── Act-level change timeline (collapsible horizontal strip) ────────── */
+  .acttl{margin:0 0 18px;border:1px solid var(--line);background:var(--panel)}
+  .acttl.hidden{display:none}
+  .acttl-bar{display:flex;align-items:center;gap:12px;padding:10px 14px}
+  .acttl-title{font-family:var(--mono);font-size:10px;text-transform:uppercase;
+    letter-spacing:.16em;color:var(--muted);font-weight:500}
+  .acttl-toggle{margin-left:auto}
+  .acttl-wrap{position:relative;padding:14px 20px 40px}
+  .acttl-wrap.hidden{display:none}
+  .acttl-track{position:relative;height:26px;margin:0 4px}
+  .acttl-track::before{content:'';position:absolute;left:0;right:0;top:12px;height:2px;
+    background:var(--line-strong)}
+  .acttl-tick{position:absolute;top:4px;width:2px;height:18px;padding:0;border:none;
+    background:var(--moss);cursor:pointer;transform:translateX(-50%);
+    transition:background .1s,height .1s,top .1s}
+  .acttl-tick::after{content:'';position:absolute;left:-5px;right:-5px;top:-6px;bottom:-6px}
+  .acttl-tick:hover,.acttl-tick:focus{background:var(--ochre);height:24px;top:1px;
+    outline:none;z-index:3}
+  .acttl-tick.cur{background:var(--ink);width:3px;height:24px;top:1px}
+  .acttl-tip{position:absolute;top:calc(100% - 8px);transform:translateX(-50%);
+    background:var(--ink);color:var(--paper);font-family:var(--mono);font-size:11.5px;
+    line-height:1.5;padding:8px 11px;border-radius:5px;max-width:360px;min-width:150px;
+    z-index:10;box-shadow:0 8px 24px -8px rgba(0,0,0,.55);pointer-events:none}
+  .acttl-tip.hidden{display:none}
+  .acttl-tip-date{font-weight:700;color:var(--ochre);margin-bottom:5px;letter-spacing:.03em}
+  .acttl-tip-note{white-space:normal;margin:3px 0;color:rgba(241,236,223,0.92)}
+
+  /* ── Help button + explainer modal ──────────────────────────────────── */
+  .help-btn{margin-left:12px;flex:0 0 auto;width:25px;height:25px;border-radius:50%;
+    border:1px solid rgba(241,236,223,0.45);background:transparent;color:rgba(241,236,223,0.8);
+    font-family:var(--mono);font-size:13px;font-weight:500;line-height:1;cursor:pointer;
+    display:inline-flex;align-items:center;justify-content:center;transition:all .12s}
+  .help-btn:hover{background:var(--ochre);color:var(--ink);border-color:var(--ochre)}
+  .modal-bg{position:fixed;inset:0;background:rgba(15,20,16,0.6);z-index:60;
+    display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto}
+  .modal-bg.hidden{display:none}
+  .modal{background:var(--panel);color:var(--ink);max-width:760px;width:100%;
+    border:1px solid var(--line-strong);border-top:3px solid var(--ochre);
+    box-shadow:0 24px 70px rgba(15,20,16,0.35)}
+  .modal-head{display:flex;align-items:center;gap:14px;padding:18px 26px 14px;
+    border-bottom:1px dashed var(--line);position:sticky;top:0;background:var(--panel);z-index:1}
+  .modal-head h2{margin:0;flex:1;font-family:var(--serif);font-weight:400;font-size:27px;
+    line-height:1.05;letter-spacing:-0.01em}
+  .modal-head h2 em{font-style:italic}
+  .modal-close{flex:0 0 auto;width:30px;height:30px;border-radius:50%;cursor:pointer;
+    border:1px solid var(--line-strong);background:transparent;color:var(--ink);
+    font-size:17px;line-height:1;display:inline-flex;align-items:center;justify-content:center}
+  .modal-close:hover{background:var(--ink);color:var(--paper)}
+  .modal-body{padding:8px 26px 30px}
+  .modal-body .lede{font-family:var(--serif);font-size:18.5px;line-height:1.45;
+    color:var(--ink-2);margin:14px 0 4px}
+  .modal-body h3{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;
+    letter-spacing:.16em;color:var(--moss);margin:24px 0 7px;font-weight:600}
+  .modal-body p{margin:.5em 0;font-size:13.5px;line-height:1.65}
+  .modal-body ol,.modal-body ul{margin:.4em 0;padding-left:1.5em;font-size:13.5px;line-height:1.6}
+  .modal-body li{margin:.34em 0}
+  .modal-body code{font-family:var(--mono);font-size:12px;background:var(--paper-2);
+    padding:1px 4px;border-radius:3px}
+  .modal-body a{color:var(--moss);text-decoration:underline;text-underline-offset:2px}
+  .modal-note{background:var(--paper-2);border-left:3px solid var(--ochre);
+    padding:10px 13px;margin:12px 0;font-size:12.5px;line-height:1.55}
+  .modal-foot{margin-top:22px;padding-top:14px;border-top:1px dashed var(--line);
+    font-size:11.5px;color:var(--muted);line-height:1.55}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="brand-row">
+      <span class="mark">
+        <svg viewBox="0 0 120 120" fill="none" stroke="currentColor" stroke-width="11" stroke-linecap="square">
+          <path d="M 24 22 L 14 22 L 14 98 L 24 98"></path>
+          <path d="M 96 22 L 106 22 L 106 98 L 96 98"></path>
+          <line x1="30" y1="42" x2="90" y2="42"></line>
+          <line x1="30" y1="60" x2="74" y2="60"></line>
+          <line x1="30" y1="78" x2="86" y2="78"></line>
+        </svg>
+      </span>
+      <span class="wordmark"><span class="simple">Simple</span><span class="lex">Lex</span></span>
+      <span class="sku">Point-in-Time Explorer</span>
+      <button class="help-btn" id="helpBtn" type="button" title="About this explorer &amp; how the data is compiled" aria-label="About this explorer and how the data is compiled">?</button>
+    </div>
+    <h1>ATO Tax Law, <em>as it stood.</em></h1>
+    <p>Read any ATO-administered Act as it was in force on a chosen date, and compare it against the current law — provision by provision.</p>
+  </div>
+</header>
+
+<div class="modal-bg hidden" id="help">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+    <div class="modal-head">
+      <h2 id="helpTitle">How this <em>explorer</em> works</h2>
+      <button class="modal-close" type="button" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="lede">A plain-language window into how Australian tax law has changed over time &mdash;
+        letting you read any ATO-administered Act exactly as it stood on a date you choose, and see
+        what has changed since.</p>
+
+      <h3>What this is for</h3>
+      <p>When you need to apply the law as it was at a particular moment &mdash; a transaction, an
+        income year, a dispute &mdash; the <em>current</em> Act is not enough. This tool rebuilds each
+        Act&rsquo;s history so you can pick a date, read the provision as it then stood, and compare it
+        side-by-side with today&rsquo;s wording, with the amendment that caused each change attached.</p>
+
+      <h3>Where the data comes from</h3>
+      <p>Everything is built from the <strong>Federal Register of Legislation</strong>
+        (<a href="https://www.legislation.gov.au" target="_blank" rel="noopener">legislation.gov.au</a>) &mdash;
+        the official, authoritative Commonwealth source for Acts and their amendment history. We cover the
+        set of Acts administered by the ATO.</p>
+      <p>The text and amendment facts are Crown copyright, reused under CC BY 4.0. The history notes here
+        are <em>our own plain wording</em> reconstructed from the Register&rsquo;s official endnotes.</p>
+
+      <h3>Get the data</h3>
+      <p>The full datasets behind this explorer are open and free to download:</p>
+      <ul>
+        <li><a href="https://huggingface.co/datasets/simplelex/ATO-Australian-Tax-Law-Dataset" target="_blank" rel="noopener">Hugging Face dataset</a> &mdash; RAG-ready AI data (CSV&nbsp;+&nbsp;JSONL), ready for <code>datasets.load_dataset()</code>.</li>
+        <li><a href="https://github.com/simplelex/ATO-Australian-Tax-Law-Dataset/releases/tag/latest-data" target="_blank" rel="noopener">GitHub release (latest-data)</a> &mdash; downloadable CSV / JSONL zip archives.</li>
+      </ul>
+
+      <h3>How the point-in-time text is built</h3>
+      <p>Each time an Act is amended, the Register publishes a new <em>compilation</em> &mdash; a fresh
+        consolidated version of the whole Act &mdash; stamped with the date it came into force. We:</p>
+      <ol>
+        <li>list every compilation of the Act and the date range each one was in force;</li>
+        <li>download the full text of each compilation and split it into individual provisions
+          (sections, subsections, and so on);</li>
+        <li>store each provision&rsquo;s text against the dates that version applied.</li>
+      </ol>
+      <p>To show the law <strong>as at your chosen date</strong>, the tool finds the compilation that was
+        in force on that date and displays that provision&rsquo;s text. <em>Compare to current</em> then
+        diffs it against the latest compilation.</p>
+
+      <h3>How the history notes are built</h3>
+      <p>Every compilation carries official <em>endnotes</em> listing what changed. We:</p>
+      <ol>
+        <li>read the legislation-history endnote (which amending Act made changes, and when each commenced);</li>
+        <li>read the amendment-history endnote (which provision was added, amended, repealed or substituted);</li>
+        <li>rebuild, in plain wording, a dated note for each change and attach it to the provision it
+          affected &mdash; matched to the version it produced by its commencement date.</li>
+      </ol>
+      <p>Open any provision and choose <strong>Show full history</strong> to see every version in order,
+        the dates it applied, a visual diff against the version before it, and the amendment note(s) behind
+        each change. The strip above the provision list does the same at the whole-Act level.</p>
+
+      <h3>Pinpointing the amendment &mdash; the Schedule item</h3>
+      <p>An amending Act makes its changes through a numbered list of <em>Schedule items</em> &mdash;
+        item&nbsp;1 changes this, item&nbsp;2 inserts that. Where we can, each history note names the exact
+        item responsible &mdash; for example <em>&ldquo;Amended by No&nbsp;101 of 2008, Sch&nbsp;2
+        item&nbsp;1&rdquo;</em> &mdash; by opening the amending Act and finding the item that names the
+        provision being changed. That gives you a precise paper trail from the change back into the Act
+        that made it.</p>
+      <p>Some notes carry no item, and that is faithful to the source. A <em>newly inserted</em> section is
+        identified in the amending Act only by where it goes (&ldquo;after section&nbsp;110&#8209;55&rdquo;),
+        never by its own future number; and some changes are made indirectly &mdash; editing a table or a
+        whole Subdivision &mdash; without printing the section number. In those cases the note still records
+        <em>what</em> changed and <em>which Act</em> did it, and leaves the item out.</p>
+
+      <h3>When text can&rsquo;t be shown &mdash; and why</h3>
+      <p>A small number of versions show <em>&ldquo;No consolidated text published for this version&rdquo;</em>
+        instead of text. This is a limit of the official record, not a gap in the law &mdash; and in every
+        case the change itself is still described by the attached note. The reasons:</p>
+      <ul>
+        <li><strong>Timeline-only changes (the vast majority).</strong> An amending Act commenced on that
+          date, but the Federal Register never registered a separate consolidated compilation for it &mdash;
+          there is <em>no document of any kind</em> (no web, Word or PDF) to display. The in-force text shown
+          is the previous compilation&rsquo;s, and the attached note describes exactly what changed.</li>
+        <li><strong>Registered in Word/PDF only.</strong> A couple of versions were registered as Word/PDF
+          without a structured web/epub version we can read automatically. For these the
+          <em>&ldquo;View the registered Word/PDF on the Federal Register&rdquo;</em> link takes you straight
+          to the official document.</li>
+        <li><strong>Very old layouts.</strong> A tiny fraction of the oldest digitised compilations use a
+          pre-2006 layout that doesn&rsquo;t separate cleanly, so a few provisions there may show blank text;
+          the &ldquo;Source: Federal Register&rdquo; link on each provision opens the original.</li>
+      </ul>
+      <p>Wherever a document <em>does</em> exist on the Federal Register, every provision and every version
+        carries a <strong>&ldquo;Source: Federal Register&rdquo;</strong> link to the official record, so you
+        can always verify the text against the authorised source.</p>
+
+      <h3>About the formatting</h3>
+      <p>The source stores each provision as one continuous block of text. To make it readable, the tool
+        rebuilds the legislative structure and indents it:</p>
+      <ul>
+        <li>subsections <code>(1)</code>, paragraphs <code>(a)</code>, subparagraphs <code>(i)</code> and
+          sub-subparagraphs <code>(A)</code> are nested by level;</li>
+        <li>method-statement <code>Step</code>s and <code>Note</code>/<code>Example</code> lines are set out
+          on their own;</li>
+        <li>cross-references inside the text (e.g. &ldquo;paragraph 5(2)(b)&rdquo;) are left untouched &mdash;
+          only genuine structure is indented.</li>
+      </ul>
+      <p>In a comparison, <ins>inserted wording</ins> is highlighted and <del>removed wording</del> is struck
+        through, matched up provision-item by provision-item so you see exactly what moved.</p>
+
+      <div class="modal-foot">
+        Reconstructed from Federal Register of Legislation data (&copy; Commonwealth of Australia, CC BY 4.0).
+        This explorer is an aid to research, not legal advice &mdash; for any binding purpose, confirm against
+        the official compilation on legislation.gov.au.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="controls">
+    <div>
+      <label for="act">Act</label>
+      <select id="act"><option value="">Loading…</option></select>
+    </div>
+    <div>
+      <label for="ver">Compilation in force from</label>
+      <select id="ver" disabled></select>
+    </div>
+    <div>
+      <label for="date">As at date</label>
+      <input type="date" id="date" disabled>
+    </div>
+    <div>
+      <label for="q">Find provision</label>
+      <input type="search" id="q" placeholder="e.g. 8-1, deductions…" disabled>
+    </div>
+    <div class="full row">
+      <label class="toggle"><input type="checkbox" id="cmp"> Compare to current law</label>
+      <label class="toggle"><input type="checkbox" id="only" disabled> Only changed provisions</label>
+      <span class="bulk" style="margin-left:auto;display:flex;gap:8px">
+        <button type="button" id="expand" class="btn" disabled>Expand all</button>
+        <button type="button" id="collapse" class="btn" disabled>Collapse all</button>
+      </span>
+    </div>
+  </div>
+
+  <div id="acttl" class="acttl hidden"></div>
+
+  <div class="status" id="status">Select an Act to begin.</div>
+  <div id="banner"></div>
+  <div id="list"></div>
+</div>
+
+<footer>
+  Reconstructed from the <a href="https://github.com/simplelex/ATO-Australian-Tax-Law-Dataset">ATO Australian Tax Law Dataset</a>,
+  derived from the Federal Register of Legislation (CC BY 4.0). Point-in-time text is provided as-is for reference, not legal advice.
+</footer>
+
+<script>
+// ==PIT-DATA-LAYER-START== (public build -- static only; generated by build_public_site.py)
+// Data host: the compact per-Act files live in the HuggingFace dataset repo
+// (CORS-enabled). Override with ?src=local (serve site/data/) or ?src=<url>.
+const HF_BASE='https://huggingface.co/datasets/simplelex/ATO-Australian-Tax-Law-Dataset/resolve/main/pit_explorer/';
+const _src=new URLSearchParams(location.search).get('src');
+const DATA_BASE = _src==='local' ? 'data/'
+  : _src && _src.startsWith('http') ? (_src.endsWith('/')?_src:_src+'/')
+  : HF_BASE;
+
+// Fetch the manifest ({acts:[...]}).
+async function dsManifest(){
+  return (await fetch(DATA_BASE+'manifest.json')).json();
+}
+
+// Load one Act -> ACT object (downloads + sorts the full per-Act segment file).
+async function dsLoadAct(code){
+  const resp=await fetch(DATA_BASE+code+'.json.gz');
+  let text;
+  try{
+    const ds=new DecompressionStream('gzip');
+    text=await new Response(resp.body.pipeThrough(ds)).text();
+  }catch(e){ text=await resp.text(); } // fallback if already decoded
+  const act=JSON.parse(text);
+  act.provisions.sort(natCmp);
+  return act;
+}
+
+// Resolve the display list + full-set counts for a date (in-memory segments).
+async function getView(d,cmp,only,q,latest){
+  return staticView(d,cmp,only,q,latest);
+}
+
+// Resolve the segment(s) a provision body needs: {at} (selected date) and {lt}
+// (current law, for the diff) -- read straight from the in-memory segments.
+async function getTexts(key,d,cmp){
+  const p=ACT.provisions.find(x=>x.k===key);
+  return {at:p?segAt(p,d):null, lt:(cmp&&p)?segAt(p,ACT.latest):null};
+}
+
+// All in-force segments of one provision, chronological (in-memory p.t).
+async function dsProvisionHistory(code,key){
+  const p=ACT.provisions.find(x=>x.k===key);
+  return p ? p.t.slice().sort((u,v)=>u.s<v.s?-1:u.s>v.s?1:0) : [];
+}
+
+// Act-level change timeline: [{date,notes:[...]}] for every recorded change,
+// derived from the in-memory segments (staticActTimeline lives in the shared
+// region below the END marker).
+async function dsActTimeline(code){
+  return staticActTimeline();
+}
+// ==PIT-DATA-LAYER-END==
+
+const $ = s => document.querySelector(s);
+const el = (t,c,txt)=>{const e=document.createElement(t);if(c)e.className=c;if(txt!=null)e.textContent=txt;return e;};
+const fmt = d => d ? new Date(d+'T00:00:00').toLocaleDateString('en-AU',{day:'numeric',month:'long',year:'numeric'}) : '';
+// Deep link to the official FRL compilation in force on `date` for the current Act.
+// FRL addresses compilations by SERIES id + in-force date (e.g.
+// /C2004A05138/2024-04-01/text) — a per-compilation register id (C…C…) is NOT a
+// title, so linking to it shows "the requested title could not be loaded". `view`
+// is 'text' (default) or 'downloads' (registered Word/PDF-only versions). Returns
+// null when we lack the Act's series id or a date.
+function frlLink(date,label,view){
+  if(!ACT||!ACT.frl||!date) return null;
+  const a=el('a','frl-src',label||'Source: Federal Register ↗');
+  a.href='https://www.legislation.gov.au/'+encodeURIComponent(ACT.frl)+'/'+
+         encodeURIComponent(date)+'/'+(view||'text');
+  a.target='_blank'; a.rel='noopener'; return a;
+}
+
+let MANIFEST=null, ACT=null, OPEN=new Set();
+let ACTTL_TICKS=[], ACTTL_OPEN=true;
+
+// natural sort for provision keys: s8-1 < s8-5 < s8a < s9
+function natKey(k){
+  const m=[]; const re=/(\d+)|([a-z]+)/g; let x;
+  while((x=re.exec(k.toLowerCase())))m.push(x[1]!=null?[0,+x[1],'']:[1,0,x[2]]);
+  return m;
+}
+function natCmp(a,b){
+  const ka=natKey(a.k),kb=natKey(b.k);
+  for(let i=0;i<Math.max(ka.length,kb.length);i++){
+    const x=ka[i]||[2,0,''],y=kb[i]||[2,0,''];
+    if(x[0]!==y[0])return x[0]-y[0];
+    if(x[1]!==y[1])return x[1]-y[1];
+    if(x[2]!==y[2])return x[2]<y[2]?-1:1;
+  }
+  return 0;
+}
+// segment in force on date d (string YYYY-MM-DD): last s<=d with (e==null||d<e)
+function segAt(p,d){
+  let r=null;
+  for(const s of p.t){ if(s.s<=d){ if(s.e==null||d<s.e) r=s; } }
+  return r;
+}
+
+async function loadManifest(){
+  const m=await dsManifest();
+  MANIFEST=m.acts;
+  const sel=$('#act'); sel.innerHTML='<option value="">— choose an Act —</option>';
+  for(const a of MANIFEST){
+    const o=el('option'); o.value=a.code;
+    o.textContent=`${a.title}  (${a.np.toLocaleString()} provisions, ${a.nv} versions)`;
+    sel.appendChild(o);
+  }
+}
+
+async function loadAct(code){
+  $('#status').innerHTML='<span class="spin"></span>Loading '+code+'…';
+  $('#list').innerHTML='';
+  ACT=await dsLoadAct(code);
+
+  const ver=$('#ver'); ver.innerHTML='';
+  ACT.versions.slice().reverse().forEach((v,i)=>{
+    const o=el('option'); o.value=v;
+    o.textContent=fmt(v)+(v===ACT.latest?'  — current':'');
+    ver.appendChild(o);
+  });
+  ver.disabled=false;
+  const dt=$('#date'); dt.min=ACT.versions[0]; dt.max=ACT.latest>todayStr()?ACT.latest:todayStr();
+  dt.value=ACT.latest; dt.disabled=false;
+  $('#q').disabled=false; $('#cmp').disabled=false;
+  $('#expand').disabled=false; $('#collapse').disabled=false;
+  OPEN.clear();
+  renderActTimeline();
+  render();
+}
+function todayStr(){return new Date().toISOString().slice(0,10);}
+
+// resolve the compilation version in force on a chosen calendar date
+function versionFor(d){
+  let r=ACT.versions[0];
+  for(const v of ACT.versions) if(v<=d) r=v;
+  return r;
+}
+
+let RENDER_SEQ=0;
+
+// Build the display list + counts from the in-memory segments (static json.gz mode).
+// Counts are over the FULL set; items are already filtered by `only` and `q`.
+function staticView(d,cmp,only,q,latest){
+  const items=[]; const counts={inforce:0,changed:0,added:0,removed:0};
+  for(const p of ACT.provisions){
+    const at=segAt(p,d);
+    const lt=cmp?segAt(p,latest):null;
+    let state='', cur=at;
+    if(cmp){
+      if(at&&lt){ state = at.x===lt.x?'same':'changed'; }
+      else if(at&&!lt){ state='removed'; }
+      else if(!at&&lt){ state='added'; cur=lt; }
+      else continue;
+    }else{
+      if(!at) continue; cur=at;
+    }
+    if(at) counts.inforce++;
+    if(state==='changed')counts.changed++; else if(state==='added')counts.added++; else if(state==='removed')counts.removed++;
+    if(only && (state==='same'||state==='')) continue;
+    if(q){
+      const hay=(p.k+' '+p.l+' '+(cur&&cur.h||'')).toLowerCase();
+      if(!hay.includes(q)) continue;
+    }
+    items.push({key:p.k,label:p.l,heading:(cur&&cur.h)||'',start:(cur&&cur.s)||'',state});
+  }
+  return {items,counts};
+}
+
+// Whole-version Text_Available=False markers that apply to date d: amendments
+// that commenced after the displayed compilation (versionFor(d)) and on/before d,
+// for which FRL published no consolidated text. (ACT.markers: static build embeds
+// them in the json.gz; the DB-backed build returns them with the Act meta.)
+function markersInEffect(d){
+  const ms=ACT.markers||[]; if(!ms.length) return [];
+  const vf=versionFor(d);
+  return ms.filter(m=>m.s>vf && m.s<=d).sort((a,b)=>a.s<b.s?-1:1);
+}
+
+// Aggregate the in-memory segments into one entry per recorded change:
+// {date, notes:[distinct amendment note(s)]}. Used by the static data path and as
+// the home build's static fallback (dsActTimeline). Seeds every compilation version
+// date so a change with no parsed note still gets a tick.
+function staticActTimeline(){
+  const byDate=new Map();
+  const add=(date,note)=>{
+    let b=byDate.get(date); if(!b){b=[];byDate.set(date,b);}
+    if(note) for(const seg of String(note).split(' | ')){
+      const t=seg.trim(); if(t&&!b.includes(t)) b.push(t);
+    }
+  };
+  for(const v of (ACT.versions||[])) if(!byDate.has(v)) byDate.set(v,[]);
+  for(const p of (ACT.provisions||[])) for(const s of p.t) if(s.c) add(s.s,s.c);
+  for(const m of (ACT.markers||[])) add(m.s,m.n);
+  return [...byDate.keys()].sort().map(d=>({date:d,notes:byDate.get(d)}));
+}
+
+// ── Act-level change timeline ────────────────────────────────────────────
+// A collapsible horizontal strip of every recorded change for the selected Act.
+// Ticks are positioned by date; hovering or selecting a tick shows the amendment
+// history note(s) -- NOT the text change. Clicking a tick also jumps the as-at
+// date to that compilation so the provision list updates to that point in time.
+async function renderActTimeline(){
+  const host=$('#acttl'); host.innerHTML=''; host.classList.add('hidden'); ACTTL_TICKS=[];
+  if(!ACT) return;
+  let tl;
+  try{ tl=await dsActTimeline(ACT.code); }
+  catch(e){ return; }                         // a nicety; never block the explorer
+  if(!tl||!tl.length) return;
+  host.classList.remove('hidden');
+
+  const bar=el('div','acttl-bar');
+  bar.appendChild(el('span','acttl-title',
+    tl.length.toLocaleString()+' recorded change'+(tl.length>1?'s':'')+
+    '  ·  '+fmt(tl[0].date)+' → '+fmt(tl[tl.length-1].date)));
+  const tg=el('button','btn acttl-toggle'); tg.type='button'; bar.appendChild(tg);
+  host.appendChild(bar);
+
+  const wrap=el('div','acttl-wrap');
+  const track=el('div','acttl-track');
+  const tip=el('div','acttl-tip hidden');
+  wrap.appendChild(track); wrap.appendChild(tip); host.appendChild(wrap);
+
+  const setOpen=(open)=>{ ACTTL_OPEN=open;
+    wrap.classList.toggle('hidden',!open); tg.textContent=open?'Hide':'Show'; };
+  tg.onclick=()=>setOpen(!ACTTL_OPEN);
+
+  const ms=d=>+new Date(d+'T00:00:00');
+  const t0=ms(tl[0].date), t1=ms(tl[tl.length-1].date), span=Math.max(1,t1-t0);
+  tl.forEach(ev=>{
+    const pos=((ms(ev.date)-t0)/span)*100;
+    const tick=el('button','acttl-tick'); tick.type='button';
+    tick.style.left=pos+'%'; tick.dataset.date=ev.date;
+    const show=()=>{
+      tip.innerHTML='';
+      tip.appendChild(el('div','acttl-tip-date',fmt(ev.date)));
+      if(ev.notes&&ev.notes.length){ for(const n of ev.notes) tip.appendChild(el('div','acttl-tip-note',n)); }
+      else tip.appendChild(el('div','acttl-tip-note','(no history note recorded)'));
+      tip.style.left=Math.min(94,Math.max(6,pos))+'%'; tip.classList.remove('hidden');
+    };
+    tick.onmouseenter=show; tick.onfocus=show;
+    tick.onmouseleave=()=>tip.classList.add('hidden');
+    tick.onblur=()=>tip.classList.add('hidden');
+    tick.onclick=()=>{ show(); $('#date').value=ev.date; render(); };
+    track.appendChild(tick); ACTTL_TICKS.push({date:ev.date,el:tick});
+  });
+
+  setOpen(ACTTL_OPEN);
+  markActTimelineCurrent(versionFor($('#date').value||ACT.latest));
+}
+
+// Highlight the tick of the compilation currently displayed (vf = its start date).
+function markActTimelineCurrent(vf){
+  for(const t of ACTTL_TICKS) t.el.classList.toggle('cur', t.date===vf);
+}
+
+async function render(){
+  if(!ACT){return;}
+  const d=$('#date').value;
+  const vf=versionFor(d);
+  $('#ver').value=vf;
+  markActTimelineCurrent(vf);
+  const cmp=$('#cmp').checked, only=$('#only').checked && cmp;
+  const latest=ACT.latest;
+  const q=$('#q').value.trim().toLowerCase();
+  const list=$('#list');
+
+  const reqId=++RENDER_SEQ;
+  let view;
+  try{ view=await getView(d,cmp,only,q,latest); }
+  catch(e){ if(reqId===RENDER_SEQ)$('#status').textContent='Query failed: '+e; return; }
+  if(reqId!==RENDER_SEQ) return;   // a newer render superseded this one
+
+  const banner=$('#banner'); banner.innerHTML='';
+  const mks=markersInEffect(d);
+  if(mks.length){
+    const box=el('div','pit-banner');
+    box.appendChild(el('div','pit-banner-h',
+      mks.length+(mks.length>1?' amendments':' amendment')+' commenced after the displayed '+
+      'compilation but FRL published no consolidated text for '+
+      (mks.length>1?'those dates':'that date')+'. The text below is as in force on '+fmt(vf)+'.'));
+    for(const m of mks){
+      const row=el('div','pit-banner-note');
+      row.appendChild(el('span','pit-banner-date', fmt(m.s)+': '));
+      row.appendChild(document.createTextNode(m.n||'(no change note recorded)'));
+      const blk=m.r?frlLink(m.s,'— view the registered Word/PDF ↗','downloads'):null;
+      if(blk){ row.appendChild(document.createTextNode(' ')); row.appendChild(blk); }
+      box.appendChild(row);
+    }
+    banner.appendChild(box);
+  }
+  list.innerHTML='';
+  for(const it of view.items) list.appendChild(provNode(it,cmp));
+  if(!view.items.length){
+    list.appendChild(el('div','empty', q?'No provisions match your search.':'No provisions to show.'));
+  }
+  const shown=view.items.length;
+  const parts=[`<b>${ACT.title}</b> as in force on <b>${fmt(d)}</b>`];
+  parts.push(`compilation commencing <b>${fmt(vf)}</b>${vf===latest?' (current)':''}`);
+  let s=parts.join(' · ')+`. Showing <b>${shown.toLocaleString()}</b> provisions`;
+  if(cmp){
+    s+=` <span class="legend">`+
+       `<span class="badge b-changed">changed ${view.counts.changed}</span>`+
+       `<span class="badge b-added">added since ${view.counts.added}</span>`+
+       `<span class="badge b-removed">repealed since ${view.counts.removed}</span></span>`;
+  }
+  $('#status').innerHTML=s;
+}
+
+function provNode(it,cmp){
+  const state=it.state;
+  const node=el('div','prov'+(state==='removed'?' removed':''));
+  const head=el('div','phead');
+  head.appendChild(el('span','pkey',it.label));
+  const title=el('span','ptitle',it.heading||'(no heading)');
+  if(cmp&&state&&state!=='same'){
+    const b={changed:'b-changed',added:'b-added',removed:'b-removed'}[state];
+    const lbl={changed:'changed',added:'added since',removed:'repealed since'}[state];
+    title.appendChild(document.createTextNode(' '));
+    title.appendChild(el('span','badge '+b,lbl));
+  }
+  head.appendChild(title);
+  const id=it.key;
+  head.appendChild(el('span','pmeta',it.start?('in force from '+fmt(it.start)):''));
+  const body=el('div','pbody'+(OPEN.has(id)?'':' hidden'));
+  const setOpen=(open)=>{
+    if(open){
+      OPEN.add(id); body.classList.remove('hidden');
+      if(!body.dataset.f) fillBody(body,it,cmp);
+    }else{
+      OPEN.delete(id); body.classList.add('hidden');
+    }
+  };
+  if(OPEN.has(id)) fillBody(body,it,cmp);
+  head.onclick=()=> setOpen(!OPEN.has(id));
+  node._setOpen=setOpen;
+  node.appendChild(head); node.appendChild(body);
+  return node;
+}
+
+// Expanded provision body: a segmented control over two panes -- the existing
+// date-vs-current compare, and the new chronological full-history timeline.
+async function fillBody(body,it,cmp){
+  body.dataset.f='1';
+  body.innerHTML='';
+  const tabs=el('div','tl-tabs');
+  const tCmp=el('button','tl-tab active'); tCmp.type='button'; tCmp.textContent='Compare to current';
+  const tHist=el('button','tl-tab'); tHist.type='button'; tHist.textContent='Show full history';
+  tabs.appendChild(tCmp); tabs.appendChild(tHist);
+  body.appendChild(tabs);
+  const paneCmp=el('div','tl-pane'); const paneHist=el('div','tl-pane hidden');
+  body.appendChild(paneCmp); body.appendChild(paneHist);
+
+  // Full-history pane: lazy-loaded on first open; Inline <-> Side-by-side toggle.
+  let histSegs=null, histMode='inline';
+  const toggleMode=()=>{ histMode = histMode==='inline'?'split':'inline'; renderTimeline(paneHist,histSegs,histMode,toggleMode); };
+  const activate=(hist)=>{
+    tCmp.classList.toggle('active',!hist); tHist.classList.toggle('active',hist);
+    paneCmp.classList.toggle('hidden',hist); paneHist.classList.toggle('hidden',!hist);
+    if(hist && !paneHist.dataset.f){
+      paneHist.dataset.f='1';
+      paneHist.innerHTML='<div class="pnote"><span class="spin"></span>Loading history…</div>';
+      dsProvisionHistory(ACT.code,it.key)
+        .then(segs=>{ histSegs=segs; renderTimeline(paneHist,histSegs,histMode,toggleMode); })
+        .catch(e=>{ paneHist.innerHTML=''; paneHist.appendChild(el('div','pnote','Failed to load history: '+e)); });
+    }
+  };
+  tCmp.onclick=()=>activate(false); tHist.onclick=()=>activate(true);
+
+  fillCompare(paneCmp,it,cmp);
+}
+
+// The original date-vs-current compare view, now rendered into its own pane.
+async function fillCompare(host,it,cmp){
+  const state=it.state;
+  host.innerHTML='<div class="pnote"><span class="spin"></span>Loading…</div>';
+  let at,lt;
+  try{ ({at,lt}=await getTexts(it.key,$('#date').value,cmp)); }
+  catch(e){ host.innerHTML=''; host.appendChild(el('div','pnote','Failed to load text: '+e)); return; }
+  host.innerHTML='';
+  const showText=(seg)=>{
+    if(!seg){host.appendChild(el('div','pnote','Not in force on this date.'));return;}
+    if(!seg.x){host.appendChild(el('div','pnote',seg.n?('No consolidated text published for this version. '+seg.n):'No text available for this version.'));
+      const lk=seg.r?frlLink(seg.s,'View the registered Word/PDF on the Federal Register ↗','downloads'):null;
+      if(lk){const w=el('div','frl-srcrow');w.appendChild(lk);host.appendChild(w);}
+      return;}
+    const bx=el('div','pbody');bx.style.border='none';bx.style.padding='0';bx.innerHTML=fmtPlain(seg.x);host.appendChild(bx);
+    const lk=frlLink(seg.s); if(lk){const w=el('div','frl-srcrow');w.appendChild(lk);host.appendChild(w);}
+  };
+  if(cmp && state==='changed' && at && lt){
+    const wrap=el('div','diffcol');
+    const c1=el('div'); c1.appendChild(el('h4',null,'As at selected date — '+fmt(at.s)));
+    const c2=el('div'); c2.appendChild(el('h4',null,'Current law — '+fmt(lt.s)));
+    const [oldH,newH]=fmtSplit(at.x,lt.x);
+    const b1=el('div','pbody');b1.style.border='none';b1.style.padding='0';b1.innerHTML=oldH;
+    const b2=el('div','pbody');b2.style.border='none';b2.style.padding='0';b2.innerHTML=newH;
+    c1.appendChild(b1);c2.appendChild(b2);
+    const l1=frlLink(at.s); if(l1)c1.appendChild(l1);
+    const l2=frlLink(lt.s); if(l2)c2.appendChild(l2);
+    wrap.appendChild(c1);wrap.appendChild(c2);
+    host.appendChild(wrap);
+  }else if(cmp && state==='removed'){
+    host.appendChild(el('div','pnote','This provision was in force on the selected date but has since been repealed / removed.'));
+    showText(at);
+  }else if(cmp && state==='added'){
+    host.appendChild(el('div','pnote','This provision was NOT in force on the selected date; shown is the current text.'));
+    showText(lt);
+  }else{
+    showText(at||lt);
+  }
+}
+
+// Chronological history of one provision: every version, its in-force range, the
+// amendment note(s) that produced it, and a diff vs the previous version. `mode`
+// is 'inline' (unified, struck-through deletions + highlighted insertions) or
+// 'split' (two-column, like the compare view). `onToggle` flips the mode.
+function renderTimeline(host,segs,mode,onToggle){
+  host.innerHTML='';
+  const bar=el('div','tl-modebar');
+  bar.appendChild(el('span','tl-modelbl', mode==='split'?'Side-by-side diff':'Inline diff'));
+  const b=el('button','btn'); b.type='button';
+  b.textContent = mode==='split'?'Inline view':'Side-by-side view';
+  b.onclick=onToggle; bar.appendChild(b);
+  host.appendChild(bar);
+
+  if(!segs||!segs.length){ host.appendChild(el('div','pnote','No history available.')); return; }
+  const tl=el('div','timeline');
+  let prevText=null;   // last version that had real text (diff baseline)
+  segs.forEach(seg=>{
+    const entry=el('div','tl-entry');
+    entry.appendChild(el('div','tl-range','In force '+fmt(seg.s)+' → '+(seg.e?fmt(seg.e):'current')));
+    if(seg.c){ for(const n of seg.c.split(' | ')) entry.appendChild(el('div','tl-note',n)); }
+    if(!seg.x){
+      const mk=el('div','tl-body'); mk.appendChild(el('span','tl-marker',
+        seg.n?('No consolidated text published for this version. '+seg.n):'No consolidated text published for this version.'));
+      entry.appendChild(mk);                     // marker: don't advance the diff baseline
+    }else if(prevText==null){
+      const bd=el('div','tl-body'); bd.innerHTML=fmtPlain(seg.x); entry.appendChild(bd); prevText=seg.x;
+    }else if(mode==='split'){
+      const wrap=el('div','diffcol');
+      const c1=el('div'); c1.appendChild(el('h4',null,'Previous text'));
+      const c2=el('div'); c2.appendChild(el('h4',null,'From '+fmt(seg.s)));
+      const [oldH,newH]=fmtSplit(prevText,seg.x);
+      const x1=el('div','tl-body'); x1.style.border='none'; x1.style.padding='0'; x1.innerHTML=oldH;
+      const x2=el('div','tl-body'); x2.style.border='none'; x2.style.padding='0'; x2.innerHTML=newH;
+      c1.appendChild(x1); c2.appendChild(x2); wrap.appendChild(c1); wrap.appendChild(c2);
+      entry.appendChild(wrap); prevText=seg.x;
+    }else{
+      const bd=el('div','tl-body tl-inline'); bd.innerHTML=fmtInline(prevText,seg.x);
+      entry.appendChild(bd); prevText=seg.x;
+    }
+    const _lk=seg.x?frlLink(seg.s):(seg.r?frlLink(seg.s,'View the registered Word/PDF on the Federal Register ↗','downloads'):null);
+    if(_lk){const _w=el('div','frl-srcrow');_w.appendChild(_lk);entry.appendChild(_w);}
+    tl.appendChild(entry);
+  });
+  host.appendChild(tl);
+}
+
+// word-level diff (LCS) -> [oldHTML, newHTML] with <del>/<ins>
+function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+
+// ── Structured provision formatter (shared; identical in both builds) ──────
+// Recovers the legislative numbering ladder from the flat run-on Text —
+// subsection (1) > paragraph (a) > subparagraph (i) > sub-subparagraph (A),
+// plus method-statement "Step N." items and trailing Note/Example/Penalty
+// lines — and renders it as an indented outline. Sequence-aware: a marker is
+// only structural when it is the NEXT expected label at its level and is not
+// preceded by a digit / ")" (a citation like "5(2)(b)") or a reference word
+// ("under subsection (4)"). So inline cross-references and group sub-headings
+// between subsections never trigger a false split.
+const PF_REF=new Set('section sections subsection subsections paragraph paragraphs subparagraph subparagraphs subdivision subdivisions division divisions part parts chapter chapters schedule schedules item items step steps clause clauses subclause subclauses'.split(' '));
+const PF_ROM=['i','ii','iii','iv','v','vi','vii','viii','ix','x','xi','xii','xiii','xiv','xv','xvi','xvii','xviii','xix','xx'];
+function pfNextRom(s){const k=PF_ROM.indexOf(s);return k>=0&&k+1<PF_ROM.length?PF_ROM[k+1]:null;}
+function pfSib(f){return f.type==='sub'?String(+f.label+1):f.type==='para'?(f.label<'z'?String.fromCharCode(f.label.charCodeAt(0)+1):null):f.type==='subpara'?pfNextRom(f.label):f.type==='subsubpara'?(f.label<'Z'?String.fromCharCode(f.label.charCodeAt(0)+1):null):null;}
+const PF_CHILD={sub:'para',para:'subpara',subpara:'subsubpara',subsubpara:null};
+function pfStart(t){return t==='para'?'a':t==='subpara'?'i':t==='subsubpara'?'A':null;}
+const PF_NOTE=/\s+((?:Notes?|Examples?|Penalty)(?:\s+\d+)?:)/;
+function pfParse(raw){
+  const text=(raw||'').replace(/\s+/g,' ').trim(); if(!text) return [];
+  const re=/\(([0-9]+|[A-Za-z]{1,5})\)|Step\s+(\d+)\./g, cands=[]; let m;
+  while((m=re.exec(text))){
+    if(m[2]!=null){cands.push({i:m.index,len:m[0].length,step:m[2]});continue;}
+    const prev=text[m.index-1]||'', wm=text.slice(0,m.index).match(/([A-Za-z]+)\s*$/);
+    cands.push({i:m.index,len:m[0].length,label:m[1],cls:/^\d+$/.test(m[1])?'num':/^[A-Z]+$/.test(m[1])?'cap':'low',
+      isRef:/[0-9)]/.test(prev)||PF_REF.has(wm?wm[1].toLowerCase():''),
+      colon:/:$/.test(text.slice(0,m.index).trimEnd())});
+  }
+  const stack=[],acc=[]; let nextSub=null;
+  for(const c of cands){
+    if(c.step!=null){acc.push({i:c.i,len:c.len,type:'step',label:'Step '+c.step,level:stack.length});continue;}
+    if(c.isRef) continue;
+    if(c.cls==='num'){
+      if(c.label.length>3) continue;            // 4+ digits = year/amount, never a subsection
+      if(+c.label!==(nextSub==null?+c.label:nextSub)) continue;  // first marker seeds the sequence
+      stack.length=0; stack.push({type:'sub',label:c.label}); nextSub=+c.label+1;
+      acc.push({i:c.i,len:c.len,type:'sub',label:'('+c.label+')',level:0}); continue;
+    }
+    let sib=-1; for(let k=stack.length-1;k>=0;k--){ if(pfSib(stack[k])===c.label){sib=k;break;} }
+    const ct=stack.length?PF_CHILD[stack[stack.length-1].type]:'para';
+    const childOK=ct&&pfStart(ct)===c.label;
+    if(c.colon&&childOK){ stack.push({type:ct,label:c.label}); acc.push({i:c.i,len:c.len,type:ct,label:'('+c.label+')',level:stack.length-1}); }
+    else if(sib>=0){ stack.length=sib+1; stack[sib].label=c.label; acc.push({i:c.i,len:c.len,type:stack[sib].type,label:'('+c.label+')',level:sib}); }
+    else if(childOK){ stack.push({type:ct,label:c.label}); acc.push({i:c.i,len:c.len,type:ct,label:'('+c.label+')',level:stack.length-1}); }
+  }
+  const items=[], firstI=acc.length?acc[0].i:text.length, lead=text.slice(0,firstI).trim();
+  if(lead) items.push({level:0,label:'',type:'plain',text:lead,path:'_lead'});
+  for(let k=0;k<acc.length;k++){
+    const a=acc[k], end=k+1<acc.length?acc[k+1].i:text.length;
+    items.push({level:a.level,label:a.label,type:a.type,text:text.slice(a.i+a.len,end).trim(),path:pfPath(acc,k)});
+  }
+  return pfNotes(items);
+}
+function pfPath(acc,k){ const parts=[]; let lv=acc[k].level; parts[lv]=acc[k].label;
+  for(let j=k-1;j>=0&&lv>0;j--){ if(acc[j].level<lv){lv=acc[j].level;parts[lv]=acc[j].label;} }
+  return parts.filter(x=>x!=null).join('>'); }
+function pfNotes(items){ const out=[];
+  for(const it of items){ if(it.type==='note'||!it.text){out.push(it);continue;}
+    let body=it.text,first=true,m;
+    while((m=body.match(PF_NOTE))){ const head=body.slice(0,m.index).trim();
+      if(first){out.push({...it,text:head});first=false;} else if(head) out.push({level:it.level,label:'',type:'note',text:head,path:it.path+'~n'});
+      body=(m[1]+body.slice(m.index+m[0].length)).trim(); }
+    if(first) out.push(it); else if(body) out.push({level:it.level,label:'',type:'note',text:body,path:it.path+'~n'}); }
+  return out; }
+// Align two item lists by unique label-path (LCS) -> [{t:'same'|'del'|'ins',a,b}],
+// so a reworded item diffs in place and an inserted/removed item shows whole.
+function pfAlign(A,B){
+  const uk=arr=>{const c={};return arr.map(it=>{const k=it.path||('_'+it.text.slice(0,16));c[k]=(c[k]||0)+1;return c[k]+'#'+k;});};
+  const ka=uk(A),kb=uk(B),n=ka.length,mm=kb.length;
+  if((n+1)*(mm+1)>4000000){ // pathological -> treat all as replace
+    return [...A.map(a=>({t:'del',a})),...B.map(b=>({t:'ins',b}))]; }
+  const dp=Array.from({length:n+1},()=>new Uint32Array(mm+1));
+  for(let i=n-1;i>=0;i--)for(let j=mm-1;j>=0;j--)dp[i][j]=ka[i]===kb[j]?dp[i+1][j+1]+1:Math.max(dp[i+1][j],dp[i][j+1]);
+  let i=0,j=0;const out=[];
+  while(i<n&&j<mm){ if(ka[i]===kb[j]){out.push({t:'same',a:A[i],b:B[j]});i++;j++;}
+    else if(dp[i+1][j]>=dp[i][j+1]){out.push({t:'del',a:A[i++]});} else {out.push({t:'ins',b:B[j++]});} }
+  while(i<n)out.push({t:'del',a:A[i++]}); while(j<mm)out.push({t:'ins',b:B[j++]});
+  return out;
+}
+function pfRow(it,inner){ const ml=(it.level*1.7).toFixed(2);
+  if(it.type==='note') return '<div class="pf-note" style="margin-left:'+ml+'em">'+inner+'</div>';
+  if(!it.label) return '<div class="pf-tx" style="margin-left:'+ml+'em">'+inner+'</div>';
+  return '<div class="pf-li" style="margin-left:'+ml+'em"><span class="pf-mk">'+esc(it.label)+'</span><span class="pf-bd">'+inner+'</span></div>'; }
+// plain structured render
+function fmtPlain(text){ const items=pfParse(text); if(!items.length) return esc(text||''); return items.map(it=>pfRow(it,esc(it.text))).join(''); }
+// unified structured diff (del struck + ins highlighted) -> HTML
+function fmtInline(oldT,newT){ return pfAlign(pfParse(oldT),pfParse(newT)).map(e=>
+  e.t==='same'?pfRow(e.b,diffUnified(e.a.text,e.b.text)):
+  e.t==='del'?pfRow(e.a,'<del>'+esc(e.a.text)+'</del>'):pfRow(e.b,'<ins>'+esc(e.b.text)+'</ins>')).join(''); }
+// two-column structured diff -> [leftHTML,rightHTML]
+function fmtSplit(oldT,newT){ let L='',R='';
+  for(const e of pfAlign(pfParse(oldT),pfParse(newT))){
+    if(e.t==='same'){ const d=diff(e.a.text,e.b.text); L+=pfRow(e.a,d[0]); R+=pfRow(e.b,d[1]); }
+    else if(e.t==='del'){ L+=pfRow(e.a,'<del>'+esc(e.a.text)+'</del>'); }
+    else { R+=pfRow(e.b,'<ins>'+esc(e.b.text)+'</ins>'); } }
+  return [L,R]; }
+function diff(a,b){
+  if(a===b) return [esc(a),esc(b)];
+  const A=a.split(/(\s+)/),B=b.split(/(\s+)/);
+  if(A.length*B.length>500000){ // too big -> no inline diff
+    return ['<del>'+esc(a)+'</del>','<ins>'+esc(b)+'</ins>'];
+  }
+  const n=A.length,m=B.length;
+  const dp=Array.from({length:n+1},()=>new Uint32Array(m+1));
+  for(let i=n-1;i>=0;i--)for(let j=m-1;j>=0;j--)
+    dp[i][j]=A[i]===B[j]?dp[i+1][j+1]+1:Math.max(dp[i+1][j],dp[i][j+1]);
+  let i=0,j=0,oh='',nh='';
+  const flush=(buf,tag)=>buf?`<${tag}>${esc(buf)}</${tag}>`:'';
+  let od='',ad='';
+  while(i<n&&j<m){
+    if(A[i]===B[j]){oh+=flush(od,'del');nh+=flush(ad,'ins');od=ad='';
+      oh+=esc(A[i]);nh+=esc(B[j]);i++;j++;}
+    else if(dp[i+1][j]>=dp[i][j+1]){od+=A[i++];}
+    else{ad+=B[j++];}
+  }
+  while(i<n)od+=A[i++]; while(j<m)ad+=B[j++];
+  oh+=flush(od,'del');nh+=flush(ad,'ins');
+  return [oh,nh];
+}
+
+// word-level diff (LCS) -> ONE combined HTML string: matches plain, <del> then
+// <ins> at each change point. Same DP + 500k-cell bailout as diff(); used by the
+// inline (unified) timeline view.
+function diffUnified(a,b){
+  if(a===b) return esc(a);
+  const A=a.split(/(\s+)/),B=b.split(/(\s+)/);
+  if(A.length*B.length>500000){ return '<del>'+esc(a)+'</del><ins>'+esc(b)+'</ins>'; }
+  const n=A.length,m=B.length;
+  const dp=Array.from({length:n+1},()=>new Uint32Array(m+1));
+  for(let i=n-1;i>=0;i--)for(let j=m-1;j>=0;j--)
+    dp[i][j]=A[i]===B[j]?dp[i+1][j+1]+1:Math.max(dp[i+1][j],dp[i][j+1]);
+  let i=0,j=0,out='',od='',ad='';
+  const flush=()=>{const s=(od?'<del>'+esc(od)+'</del>':'')+(ad?'<ins>'+esc(ad)+'</ins>':'');od=ad='';return s;};
+  while(i<n&&j<m){
+    if(A[i]===B[j]){out+=flush();out+=esc(A[i]);i++;j++;}
+    else if(dp[i+1][j]>=dp[i][j+1]){od+=A[i++];}
+    else{ad+=B[j++];}
+  }
+  while(i<n)od+=A[i++]; while(j<m)ad+=B[j++];
+  out+=flush();
+  return out;
+}
+
+// events
+const helpBg=$('#help');
+$('#helpBtn').onclick=()=>helpBg.classList.remove('hidden');
+helpBg.onclick=e=>{ if(e.target===helpBg||e.target.classList.contains('modal-close')) helpBg.classList.add('hidden'); };
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') helpBg.classList.add('hidden'); });
+$('#act').onchange=e=>{ if(e.target.value)loadAct(e.target.value); };
+$('#date').onchange=render;
+$('#ver').onchange=e=>{ $('#date').value=e.target.value; render(); };
+$('#cmp').onchange=e=>{ $('#only').disabled=!e.target.checked; if(!e.target.checked)$('#only').checked=false; render(); };
+$('#only').onchange=render;
+let qt; $('#q').oninput=()=>{clearTimeout(qt);qt=setTimeout(render,180);};
+
+// Expand / collapse every provision currently shown (respects search + filters).
+// In API mode each newly-opened body lazy-fetches its text on demand (see getTexts).
+function setAllOpen(open){
+  for(const node of $('#list').querySelectorAll('.prov')) node._setOpen(open);
+}
+$('#expand').onclick=()=>setAllOpen(true);
+$('#collapse').onclick=()=>setAllOpen(false);
+
+loadManifest().catch(e=>{$('#status').textContent='Failed to load data: '+e;});
+</script>
+</body>
+</html>
